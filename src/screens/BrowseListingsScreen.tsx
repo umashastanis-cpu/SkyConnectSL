@@ -10,10 +10,14 @@ import {
   ActivityIndicator,
   Alert,
   Image,
+  ScrollView,
 } from 'react-native';
-import { getApprovedListings } from '../services/firestoreService';
+import { Ionicons } from '@expo/vector-icons';
+import { searchListings, getListingsByCategory, getApprovedListings } from '../services/firestoreService';
+import { ListingCategory } from '../types';
 
-type Category = 'all' | 'tour' | 'hotel' | 'transport';
+type Category = 'all' | ListingCategory;
+type SortOption = 'newest' | 'price-low' | 'price-high';
 
 interface Listing {
   id?: string;
@@ -36,19 +40,36 @@ export default function BrowseListingsScreen({ navigation }: any) {
   const [refreshing, setRefreshing] = useState(false);
   const [searchQuery, setSearchQuery] = useState('');
   const [selectedCategory, setSelectedCategory] = useState<Category>('all');
+  const [showFilters, setShowFilters] = useState(false);
+  const [minPrice, setMinPrice] = useState('');
+  const [maxPrice, setMaxPrice] = useState('');
+  const [locationFilter, setLocationFilter] = useState('');
+  const [sortBy, setSortBy] = useState<SortOption>('newest');
 
   useEffect(() => {
     loadListings();
   }, []);
 
   useEffect(() => {
-    filterListings();
-  }, [listings, searchQuery, selectedCategory]);
+    filterAndSortListings();
+  }, [listings, searchQuery, selectedCategory, minPrice, maxPrice, locationFilter, sortBy]);
 
   const loadListings = async () => {
     try {
-      const data = await getApprovedListings();
-      setListings(data);
+      // Use search function if filters are active, otherwise get all
+      if (searchQuery || selectedCategory !== 'all' || minPrice || maxPrice || locationFilter) {
+        const data = await searchListings(
+          searchQuery || undefined,
+          selectedCategory !== 'all' ? selectedCategory as ListingCategory : undefined,
+          minPrice ? parseFloat(minPrice) : undefined,
+          maxPrice ? parseFloat(maxPrice) : undefined,
+          locationFilter || undefined
+        );
+        setListings(data);
+      } else {
+        const data = await getApprovedListings();
+        setListings(data);
+      }
     } catch (error: any) {
       console.error('Error loading listings:', error);
       Alert.alert('Error', 'Failed to load listings: ' + error.message);
@@ -58,25 +79,46 @@ export default function BrowseListingsScreen({ navigation }: any) {
     }
   };
 
-  const filterListings = () => {
+  const filterAndSortListings = () => {
     let filtered = [...listings];
 
-    // Filter by category
-    if (selectedCategory !== 'all') {
-      filtered = filtered.filter(listing => listing.category === selectedCategory);
-    }
-
-    // Filter by search query
-    if (searchQuery.trim()) {
-      const query = searchQuery.toLowerCase();
-      filtered = filtered.filter(listing =>
-        listing.title.toLowerCase().includes(query) ||
-        listing.description.toLowerCase().includes(query) ||
-        listing.location.toLowerCase().includes(query)
-      );
+    // Apply sorting
+    switch (sortBy) {
+      case 'price-low':
+        filtered.sort((a, b) => a.price - b.price);
+        break;
+      case 'price-high':
+        filtered.sort((a, b) => b.price - a.price);
+        break;
+      case 'newest':
+      default:
+        filtered.sort((a, b) => {
+          const dateA = a.createdAt?.toDate ? a.createdAt.toDate() : new Date(a.createdAt);
+          const dateB = b.createdAt?.toDate ? b.createdAt.toDate() : new Date(b.createdAt);
+          return dateB.getTime() - dateA.getTime();
+        });
+        break;
     }
 
     setFilteredListings(filtered);
+  };
+
+  const applyFilters = async () => {
+    setLoading(true);
+    await loadListings();
+  };
+
+  const clearAllFilters = () => {
+    setSearchQuery('');
+    setSelectedCategory('all');
+    setMinPrice('');
+    setMaxPrice('');
+    setLocationFilter('');
+    setSortBy('newest');
+  };
+
+  const hasActiveFilters = () => {
+    return searchQuery || selectedCategory !== 'all' || minPrice || maxPrice || locationFilter;
   };
 
   const onRefresh = () => {
@@ -212,13 +254,166 @@ export default function BrowseListingsScreen({ navigation }: any) {
         />
       </View>
 
-      {/* Category Filter */}
-      <View style={styles.categoryContainer}>
-        {renderCategoryButton('all', 'All')}
-        {renderCategoryButton('tour', 'Tours')}
-        {renderCategoryButton('hotel', 'Hotels')}
-        {renderCategoryButton('transport', 'Transport')}
-      </View>
+      {/* Filter Toggle Button */}
+      <TouchableOpacity
+        style={styles.filterToggle}
+        onPress={() => setShowFilters(!showFilters)}
+      >
+        <View style={styles.filterToggleContent}>
+          <Ionicons name="options-outline" size={20} color="#007AFF" />
+          <Text style={styles.filterToggleText}>Filters & Sort</Text>
+          {hasActiveFilters() && <View style={styles.activeFilterDot} />}
+        </View>
+        <Ionicons
+          name={showFilters ? 'chevron-up' : 'chevron-down'}
+          size={20}
+          color="#666"
+        />
+      </TouchableOpacity>
+
+      {/* Expandable Filter Section */}
+      {showFilters && (
+        <View style={styles.filtersContainer}>
+          {/* Category Filter */}
+          <View style={styles.filterSection}>
+            <Text style={styles.filterLabel}>Category</Text>
+            <ScrollView horizontal showsHorizontalScrollIndicator={false}>
+              <View style={styles.categoryContainer}>
+                {renderCategoryButton('all', 'All')}
+                {renderCategoryButton('tour', 'Tours')}
+                {renderCategoryButton('accommodation', 'Hotels')}
+                {renderCategoryButton('transport', 'Transport')}
+                {renderCategoryButton('activity', 'Activities')}
+              </View>
+            </ScrollView>
+          </View>
+
+          {/* Price Range Filter */}
+          <View style={styles.filterSection}>
+            <Text style={styles.filterLabel}>Price Range (LKR)</Text>
+            <View style={styles.priceRangeContainer}>
+              <TextInput
+                style={styles.priceInput}
+                placeholder="Min"
+                value={minPrice}
+                onChangeText={setMinPrice}
+                keyboardType="numeric"
+                placeholderTextColor="#999"
+              />
+              <Text style={styles.priceSeparator}>-</Text>
+              <TextInput
+                style={styles.priceInput}
+                placeholder="Max"
+                value={maxPrice}
+                onChangeText={setMaxPrice}
+                keyboardType="numeric"
+                placeholderTextColor="#999"
+              />
+            </View>
+          </View>
+
+          {/* Location Filter */}
+          <View style={styles.filterSection}>
+            <Text style={styles.filterLabel}>Location</Text>
+            <TextInput
+              style={styles.locationInput}
+              placeholder="e.g., Colombo, Galle, Kandy"
+              value={locationFilter}
+              onChangeText={setLocationFilter}
+              placeholderTextColor="#999"
+            />
+          </View>
+
+          {/* Sort Options */}
+          <View style={styles.filterSection}>
+            <Text style={styles.filterLabel}>Sort By</Text>
+            <View style={styles.sortContainer}>
+              <TouchableOpacity
+                style={[styles.sortButton, sortBy === 'newest' && styles.sortButtonActive]}
+                onPress={() => setSortBy('newest')}
+              >
+                <Text style={[styles.sortButtonText, sortBy === 'newest' && styles.sortButtonTextActive]}>
+                  Newest
+                </Text>
+              </TouchableOpacity>
+              <TouchableOpacity
+                style={[styles.sortButton, sortBy === 'price-low' && styles.sortButtonActive]}
+                onPress={() => setSortBy('price-low')}
+              >
+                <Text style={[styles.sortButtonText, sortBy === 'price-low' && styles.sortButtonTextActive]}>
+                  Price: Low to High
+                </Text>
+              </TouchableOpacity>
+              <TouchableOpacity
+                style={[styles.sortButton, sortBy === 'price-high' && styles.sortButtonActive]}
+                onPress={() => setSortBy('price-high')}
+              >
+                <Text style={[styles.sortButtonText, sortBy === 'price-high' && styles.sortButtonTextActive]}>
+                  Price: High to Low
+                </Text>
+              </TouchableOpacity>
+            </View>
+          </View>
+
+          {/* Filter Action Buttons */}
+          <View style={styles.filterActions}>
+            <TouchableOpacity
+              style={styles.clearFiltersButton}
+              onPress={clearAllFilters}
+            >
+              <Text style={styles.clearFiltersText}>Clear All</Text>
+            </TouchableOpacity>
+            <TouchableOpacity
+              style={styles.applyFiltersButton}
+              onPress={applyFilters}
+            >
+              <Text style={styles.applyFiltersText}>Apply Filters</Text>
+            </TouchableOpacity>
+          </View>
+        </View>
+      )}
+
+      {/* Active Filter Chips */}
+      {hasActiveFilters() && (
+        <ScrollView
+          horizontal
+          showsHorizontalScrollIndicator={false}
+          style={styles.filterChipsContainer}
+        >
+          {selectedCategory !== 'all' && (
+            <View style={styles.filterChip}>
+              <Text style={styles.filterChipText}>{selectedCategory}</Text>
+              <TouchableOpacity onPress={() => setSelectedCategory('all')}>
+                <Ionicons name="close-circle" size={16} color="#666" />
+              </TouchableOpacity>
+            </View>
+          )}
+          {minPrice && (
+            <View style={styles.filterChip}>
+              <Text style={styles.filterChipText}>Min: LKR {minPrice}</Text>
+              <TouchableOpacity onPress={() => setMinPrice('')}>
+                <Ionicons name="close-circle" size={16} color="#666" />
+              </TouchableOpacity>
+            </View>
+          )}
+          {maxPrice && (
+            <View style={styles.filterChip}>
+              <Text style={styles.filterChipText}>Max: LKR {maxPrice}</Text>
+              <TouchableOpacity onPress={() => setMaxPrice('')}>
+                <Ionicons name="close-circle" size={16} color="#666" />
+              </TouchableOpacity>
+            </View>
+          )}
+          {locationFilter && (
+            <View style={styles.filterChip}>
+              <Text style={styles.filterChipText}>{locationFilter}</Text>
+              <TouchableOpacity onPress={() => setLocationFilter('')}>
+                <Ionicons name="close-circle" size={16} color="#666" />
+              </TouchableOpacity>
+            </View>
+          )}
+        </ScrollView>
+      )}
 
       {/* Results Count */}
       <Text style={styles.resultsCount}>
@@ -241,15 +436,12 @@ export default function BrowseListingsScreen({ navigation }: any) {
                 ? 'No listings match your filters'
                 : 'No approved listings yet'}
             </Text>
-            {(searchQuery || selectedCategory !== 'all') && (
+            {hasActiveFilters() && (
               <TouchableOpacity
                 style={styles.clearButton}
-                onPress={() => {
-                  setSearchQuery('');
-                  setSelectedCategory('all');
-                }}
+                onPress={clearAllFilters}
               >
-                <Text style={styles.clearButtonText}>Clear Filters</Text>
+                <Text style={styles.clearButtonText}>Clear All Filters</Text>
               </TouchableOpacity>
             )}
           </View>
@@ -287,12 +479,151 @@ const styles = StyleSheet.create({
     borderRadius: 8,
     fontSize: 16,
   },
-  categoryContainer: {
+  filterToggle: {
     flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
     padding: 15,
     backgroundColor: '#FFF',
     borderBottomWidth: 1,
     borderBottomColor: '#E0E0E0',
+  },
+  filterToggleContent: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 8,
+  },
+  filterToggleText: {
+    fontSize: 16,
+    fontWeight: '600',
+    color: '#007AFF',
+  },
+  activeFilterDot: {
+    width: 8,
+    height: 8,
+    borderRadius: 4,
+    backgroundColor: '#FF3B30',
+  },
+  filtersContainer: {
+    backgroundColor: '#F9F9F9',
+    padding: 15,
+    borderBottomWidth: 1,
+    borderBottomColor: '#E0E0E0',
+  },
+  filterSection: {
+    marginBottom: 15,
+  },
+  filterLabel: {
+    fontSize: 14,
+    fontWeight: '600',
+    color: '#333',
+    marginBottom: 8,
+  },
+  categoryContainer: {
+    flexDirection: 'row',
+    gap: 8,
+  },
+  priceRangeContainer: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 10,
+  },
+  priceInput: {
+    flex: 1,
+    backgroundColor: '#FFF',
+    padding: 10,
+    borderRadius: 8,
+    fontSize: 14,
+    borderWidth: 1,
+    borderColor: '#DDD',
+  },
+  priceSeparator: {
+    fontSize: 16,
+    color: '#666',
+  },
+  locationInput: {
+    backgroundColor: '#FFF',
+    padding: 10,
+    borderRadius: 8,
+    fontSize: 14,
+    borderWidth: 1,
+    borderColor: '#DDD',
+  },
+  sortContainer: {
+    gap: 8,
+  },
+  sortButton: {
+    padding: 10,
+    borderRadius: 8,
+    backgroundColor: '#FFF',
+    borderWidth: 1,
+    borderColor: '#DDD',
+    alignItems: 'center',
+  },
+  sortButtonActive: {
+    backgroundColor: '#007AFF',
+    borderColor: '#007AFF',
+  },
+  sortButtonText: {
+    fontSize: 14,
+    color: '#666',
+  },
+  sortButtonTextActive: {
+    color: '#FFF',
+    fontWeight: '600',
+  },
+  filterActions: {
+    flexDirection: 'row',
+    gap: 10,
+    marginTop: 5,
+  },
+  clearFiltersButton: {
+    flex: 1,
+    padding: 12,
+    borderRadius: 8,
+    backgroundColor: '#FFF',
+    borderWidth: 1,
+    borderColor: '#007AFF',
+    alignItems: 'center',
+  },
+  clearFiltersText: {
+    color: '#007AFF',
+    fontSize: 14,
+    fontWeight: '600',
+  },
+  applyFiltersButton: {
+    flex: 1,
+    padding: 12,
+    borderRadius: 8,
+    backgroundColor: '#007AFF',
+    alignItems: 'center',
+  },
+  applyFiltersText: {
+    color: '#FFF',
+    fontSize: 14,
+    fontWeight: '600',
+  },
+  filterChipsContainer: {
+    backgroundColor: '#FFF',
+    paddingHorizontal: 15,
+    paddingVertical: 10,
+    borderBottomWidth: 1,
+    borderBottomColor: '#E0E0E0',
+  },
+  filterChip: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 6,
+    backgroundColor: '#E3F2FD',
+    paddingHorizontal: 12,
+    paddingVertical: 6,
+    borderRadius: 16,
+    marginRight: 8,
+  },
+  filterChipText: {
+    fontSize: 12,
+    color: '#007AFF',
+    fontWeight: '600',
   },
   categoryButton: {
     paddingHorizontal: 16,
