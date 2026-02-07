@@ -1,6 +1,11 @@
-# SkyConnect SL - Sprint 1
+# SkyConnect SL - Mobile App 📱
 
 Travel marketplace connecting travelers with local partners in Sri Lanka.
+
+> **Note:** The website has been moved to a separate repository:  
+> 🌐 **[SkyConnectSL-Website](https://github.com/umashastanis-cpu/SkyConnectSL-Website)**
+
+This repository contains the **React Native mobile application**.
 
 ## Sprint 1 Features ✅
 
