@@ -149,19 +149,28 @@ export const updatePartnerProfile = async (
 };
 
 // Admin function to approve partner
-export const approvePartner = async (userId: string): Promise<void> => {
+export const approvePartner = async (
+  userId: string,
+  adminId: string
+): Promise<void> => {
   const partnerRef = doc(db, 'partners', userId);
   await updateDoc(partnerRef, {
     status: 'approved',
+    approvedAt: serverTimestamp(),
+    approvedBy: adminId,
     updatedAt: serverTimestamp(),
   });
 };
 
 // Admin function to reject partner
-export const rejectPartner = async (userId: string): Promise<void> => {
+export const rejectPartner = async (
+  userId: string,
+  reason?: string
+): Promise<void> => {
   const partnerRef = doc(db, 'partners', userId);
   await updateDoc(partnerRef, {
     status: 'rejected',
+    rejectionReason: reason || '',
     updatedAt: serverTimestamp(),
   });
 };
@@ -387,4 +396,346 @@ export const getPendingListings = async (): Promise<Listing[]> => {
       updatedAt: (data.updatedAt as Timestamp).toDate(),
     } as Listing;
   });
+};
+
+// ========== Enhanced Search & Filter ==========
+
+/**
+ * Search listings with multiple filters
+ */
+export const searchListings = async (
+  searchQuery?: string,
+  category?: ListingCategory,
+  minPrice?: number,
+  maxPrice?: number,
+  location?: string
+): Promise<Listing[]> => {
+  try {
+    const listingsRef = collection(db, 'listings');
+    let q = query(listingsRef, where('status', '==', 'approved'));
+
+    // Add category filter
+    if (category) {
+      q = query(q, where('category', '==', category));
+    }
+
+    // Add price filters
+    if (minPrice !== undefined) {
+      q = query(q, where('price', '>=', minPrice));
+    }
+    if (maxPrice !== undefined) {
+      q = query(q, where('price', '<=', maxPrice));
+    }
+
+    const querySnapshot = await getDocs(q);
+    let listings = querySnapshot.docs.map((doc) => {
+      const data = doc.data();
+      return {
+        id: doc.id,
+        ...data,
+        availability: {
+          startDate: (data.availability.startDate as Timestamp).toDate(),
+          endDate: (data.availability.endDate as Timestamp).toDate(),
+        },
+        createdAt: (data.createdAt as Timestamp).toDate(),
+        updatedAt: (data.updatedAt as Timestamp).toDate(),
+      } as Listing;
+    });
+
+    // Client-side filtering for search query and location
+    if (searchQuery) {
+      const query = searchQuery.toLowerCase();
+      listings = listings.filter(
+        listing =>
+          listing.title.toLowerCase().includes(query) ||
+          listing.description.toLowerCase().includes(query) ||
+          listing.tags.some(tag => tag.toLowerCase().includes(query))
+      );
+    }
+
+    if (location) {
+      const loc = location.toLowerCase();
+      listings = listings.filter(listing =>
+        listing.location.toLowerCase().includes(loc)
+      );
+    }
+
+    return listings;
+  } catch (error) {
+    console.error('Error searching listings:', error);
+    throw error;
+  }
+};
+
+/**
+ * Get listings by category
+ */
+export const getListingsByCategory = async (
+  category: ListingCategory
+): Promise<Listing[]> => {
+  try {
+    const listingsRef = collection(db, 'listings');
+    const q = query(
+      listingsRef,
+      where('status', '==', 'approved'),
+      where('category', '==', category),
+      orderBy('createdAt', 'desc')
+    );
+
+    const querySnapshot = await getDocs(q);
+    return querySnapshot.docs.map((doc) => {
+      const data = doc.data();
+      return {
+        id: doc.id,
+        ...data,
+        availability: {
+          startDate: (data.availability.startDate as Timestamp).toDate(),
+          endDate: (data.availability.endDate as Timestamp).toDate(),
+        },
+        createdAt: (data.createdAt as Timestamp).toDate(),
+        updatedAt: (data.updatedAt as Timestamp).toDate(),
+      } as Listing;
+    });
+  } catch (error) {
+    console.error('Error getting listings by category:', error);
+    throw error;
+  }
+};
+
+/**
+ * Get featured listings
+ */
+export const getFeaturedListings = async (): Promise<Listing[]> => {
+  try {
+    const listingsRef = collection(db, 'listings');
+    const q = query(
+      listingsRef,
+      where('status', '==', 'approved'),
+      orderBy('createdAt', 'desc')
+    );
+
+    const querySnapshot = await getDocs(q);
+    return querySnapshot.docs.slice(0, 10).map((doc) => {
+      const data = doc.data();
+      return {
+        id: doc.id,
+        ...data,
+        availability: {
+          startDate: (data.availability.startDate as Timestamp).toDate(),
+          endDate: (data.availability.endDate as Timestamp).toDate(),
+        },
+        createdAt: (data.createdAt as Timestamp).toDate(),
+        updatedAt: (data.updatedAt as Timestamp).toDate(),
+      } as Listing;
+    });
+  } catch (error) {
+    console.error('Error getting featured listings:', error);
+    return getApprovedListings();
+  }
+};
+
+// ========== Booking Service ==========
+
+/**
+ * Create a new booking
+ */
+export const createBooking = async (
+  bookingData: Omit<any, 'id' | 'createdAt' | 'updatedAt' | 'status' | 'paymentStatus'>
+): Promise<string> => {
+  try {
+    const bookingsRef = collection(db, 'bookings');
+    const docRef = await addDoc(bookingsRef, {
+      ...bookingData,
+      bookingDate: Timestamp.fromDate(bookingData.bookingDate),
+      startDate: Timestamp.fromDate(bookingData.startDate),
+      endDate: Timestamp.fromDate(bookingData.endDate),
+      status: 'pending',
+      paymentStatus: 'pending',
+      createdAt: serverTimestamp(),
+      updatedAt: serverTimestamp(),
+    });
+    return docRef.id;
+  } catch (error) {
+    console.error('Error creating booking:', error);
+    throw error;
+  }
+};
+
+/**
+ * Get traveler's bookings
+ */
+export const getUserBookings = async (userId: string): Promise<any[]> => {
+  try {
+    const bookingsRef = collection(db, 'bookings');
+    const q = query(
+      bookingsRef,
+      where('travelerId', '==', userId),
+      orderBy('createdAt', 'desc')
+    );
+
+    const querySnapshot = await getDocs(q);
+    return querySnapshot.docs.map((doc) => ({
+      id: doc.id,
+      ...doc.data(),
+      bookingDate: (doc.data().bookingDate as Timestamp).toDate(),
+      startDate: (doc.data().startDate as Timestamp).toDate(),
+      endDate: (doc.data().endDate as Timestamp).toDate(),
+      createdAt: (doc.data().createdAt as Timestamp).toDate(),
+      updatedAt: (doc.data().updatedAt as Timestamp).toDate(),
+    }));
+  } catch (error) {
+    console.error('Error getting user bookings:', error);
+    throw error;
+  }
+};
+
+/**
+ * Get partner's bookings
+ */
+export const getPartnerBookings = async (partnerId: string): Promise<any[]> => {
+  try {
+    const bookingsRef = collection(db, 'bookings');
+    const q = query(
+      bookingsRef,
+      where('partnerId', '==', partnerId),
+      orderBy('createdAt', 'desc')
+    );
+
+    const querySnapshot = await getDocs(q);
+    return querySnapshot.  docs.map((doc) => ({
+      id: doc.id,
+      ...doc.data(),
+      bookingDate: (doc.data().bookingDate as Timestamp).toDate(),
+      startDate: (doc.data().startDate as Timestamp).toDate(),
+      endDate: (doc.data().endDate as Timestamp).toDate(),
+      createdAt: (doc.data().createdAt as Timestamp).toDate(),
+      updatedAt: (doc.data().updatedAt as Timestamp).toDate(),
+    }));
+  } catch (error) {
+    console.error('Error getting partner bookings:', error);
+    throw error;
+  }
+};
+
+/**
+ * Update booking status
+ */
+export const updateBookingStatus = async (
+  bookingId: string,
+  status: 'pending' | 'confirmed' | 'cancelled' | 'completed'
+): Promise<void> => {
+  try {
+    const bookingRef = doc(db, 'bookings', bookingId);
+    await updateDoc(bookingRef, {
+      status,
+      updatedAt: serverTimestamp(),
+    });
+  } catch (error) {
+    console.error('Error updating booking status:', error);
+    throw error;
+  }
+};
+
+/**
+ * Cancel booking
+ */
+export const cancelBooking = async (bookingId: string): Promise<void> => {
+  try {
+    await updateBookingStatus(bookingId, 'cancelled');
+  } catch (error) {
+    console.error('Error cancelling booking:', error);
+    throw error;
+  }
+};
+
+// ========== Favorites Service ==========
+
+/**
+ * Add listing to favorites
+ */
+export const addToFavorites = async (
+  userId: string,
+  listingId: string
+): Promise<void> => {
+  try {
+    const favoriteRef = doc(db, 'favorites', `${userId}_${listingId}`);
+    const listing = await getListing(listingId);
+    
+    if (listing) {
+      await setDoc(favoriteRef, {
+        userId,
+        listingId,
+        listingTitle: listing.title,
+        listingImage: listing.images[0] || '',
+        price: listing.price,
+        createdAt: serverTimestamp(),
+      });
+    }
+  } catch (error) {
+    console.error('Error adding to favorites:', error);
+    throw error;
+  }
+};
+
+/**
+ * Remove from favorites
+ */
+export const removeFromFavorites = async (
+  userId: string,
+  listingId: string
+): Promise<void> => {
+  try {
+    const favoriteRef = doc(db, 'favorites', `${userId}_${listingId}`);
+    await deleteDoc(favoriteRef);
+  } catch (error) {
+    console.error('Error removing from favorites:', error);
+    throw error;
+  }
+};
+
+/**
+ * Get user's favorites
+ */
+export const getUserFavorites = async (userId: string): Promise<any[]> => {
+  try {
+    const favoritesRef = collection(db, 'favorites');
+    const q = query(
+      favoritesRef,
+      where('userId', '==', userId),
+      orderBy('createdAt', 'desc')
+    );
+
+    const querySnapshot = await getDocs(q);
+    return querySnapshot.docs.map((doc) => ({
+      ...doc.data(),
+      createdAt: (doc.data().createdAt as Timestamp).toDate(),
+    }));
+  } catch (error) {
+    console.error('Error getting user favorites:', error);
+    throw error;
+  }
+};
+
+/**
+ * Check if listing is favorited
+ */
+export const isListingFavorited = async (
+  userId: string,
+  listingId: string
+): Promise<boolean> => {
+  try {
+    const favoriteRef = doc(db, 'favorites', `${userId}_${listingId}`);
+    const favoriteSnap = await getDoc(favoriteRef);
+    return favoriteSnap.exists();
+  } catch (error) {
+    console.error('Error checking favorite status:', error);
+    return false;
+  }
+};
+
+/**
+ * Get listing by ID (alias for getListing)
+ */
+export const getListingById = async (listingId: string): Promise<Listing | null> => {
+  return getListing(listingId);
 };

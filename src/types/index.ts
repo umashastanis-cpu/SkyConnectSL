@@ -19,6 +19,10 @@ export interface TravelerProfile {
   userId: string;
   name: string;
   email: string;
+  phoneNumber?: string;           // NEW - Phone number
+  profilePhoto?: string;           // NEW - Profile photo URL
+  nationality?: string;            // NEW - Nationality
+  dateOfBirth?: Date;             // NEW - Date of birth
   travelPreferences: string[]; // e.g., ["Beach", "Adventure", "Cultural"]
   budgetRange: {
     min: number;
@@ -32,15 +36,20 @@ export interface TravelerProfile {
 // Partner Profile
 export interface PartnerProfile {
   userId: string;
-  companyName: string;
+  businessName: string;
+  businessCategory: string;
   description: string;
-  location: string;
-  contactInfo: {
-    phone: string;
-    email: string;
-    website?: string;
-  };
+  businessAddress: string;
+  registrationNumber?: string;
+  email: string;
+  contactPhone: string;
+  websiteUrl?: string;
+  logo?: string;                   // NEW - Logo URL
+  documents?: string[];            // NEW - Business documents URLs
   status: PartnerStatus;
+  rejectionReason?: string;        // NEW - Reason for rejection
+  approvedAt?: Date;              // NEW - Approval timestamp
+  approvedBy?: string;            // NEW - Admin who approved
   createdAt: Date;
   updatedAt: Date;
 }
@@ -104,3 +113,56 @@ export type RootStackParamList = {
   ListingDetail: { listingId: string };
   PartnerListings: undefined;
 };
+
+// Booking interface
+export interface Booking {
+  id: string;
+  listingId: string;
+  listingTitle: string;
+  travelerId: string;
+  travelerName: string;
+  travelerEmail: string;
+  partnerId: string;
+  partnerName: string;
+  bookingDate: Date;
+  startDate: Date;
+  endDate: Date;
+  numberOfPeople: number;
+  totalPrice: number;
+  currency: string;
+  status: 'pending' | 'confirmed' | 'cancelled' | 'completed';
+  paymentStatus: 'pending' | 'paid' | 'refunded';
+  paymentMethod?: string;
+  specialRequests?: string;
+  createdAt: Date;
+  updatedAt: Date;
+}
+
+// Favorite interface
+export interface Favorite {
+  userId: string;
+  listingId: string;
+  listingTitle: string;
+  listingImage: string;
+  price: number;
+  createdAt: Date;
+}
+
+// Review interface
+export interface Review {
+  id: string;
+  listingId: string;
+  travelerId: string;
+  travelerName: string;
+  travelerPhoto?: string;
+  rating: number; // 1-5
+  comment: string;
+  images?: string[];
+  response?: {
+    text: string;
+    respondedAt: Date;
+  };
+  helpful: number; // upvotes
+  createdAt: Date;
+  updatedAt: Date;
+}
