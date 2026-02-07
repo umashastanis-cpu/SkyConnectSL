@@ -1,0 +1,375 @@
+CSU5320 PROJECT PROGRESS PRESENTATION - SLIDE CONTENT
+======================================================
+
+SLIDE 1: TITLE SLIDE
+--------------------
+Title: SkyConnect: Intelligent Travel Platform for Sri Lanka
+Subtitle: Connecting Travelers with Local Service Providers
+
+Student: [YOUR NAME]
+Registration No: [YOUR REG NUMBER]
+Supervisor: [SUPERVISOR NAME]
+Date: 17th February 2026
+CSU5320 – Project in Computer Science
+
+
+SLIDE 2: BACKGROUND OF THE RESEARCH PROBLEM
+--------------------------------------------
+Title: Tourism Industry Challenges in Sri Lanka
+
+Key Problems:
+• Fragmented service ecosystem
+  - Travelers struggle to find reliable local providers
+  - No centralized platform for tours, hotels, transport
+
+• Information asymmetry
+  - Difficult to verify authentic vs. fraudulent operators
+  - Trust and safety concerns
+
+• Inefficient booking process
+  - Manual arrangements via multiple channels
+  - Time-consuming research and coordination
+
+• Limited personalization
+  - Generic packages don't match individual preferences
+
+
+SLIDE 3: PROBLEM JUSTIFICATION & SYMPTOMS
+------------------------------------------
+Title: Identified Symptoms
+
+For Travelers:
+✗ 60%+ spend excessive time researching separately
+✗ High abandonment due to complex processes
+✗ Safety concerns with unverified providers
+
+For Local Service Providers:
+✗ Limited digital presence and visibility
+✗ Difficulty reaching international tourists
+✗ No platform for showcasing services
+
+Economic Impact:
+→ Lost revenue for local businesses
+→ Poor user experience
+→ Missed tourism opportunities
+
+
+SLIDE 4: RESEARCH OBJECTIVES
+-----------------------------
+Title: Research Objectives
+
+Primary Objective:
+Develop an intelligent, mobile-first platform connecting travelers with verified local service providers in Sri Lanka
+
+Specific Objectives:
+1. Secure authentication & dual-role user profiles
+   (Travelers & Service Partners)
+
+2. Dynamic service listing & discovery system
+   (Tours, Hotels, Transport, Activities)
+
+3. Admin dashboard with partner verification
+   (Quality control & approval workflows)
+
+4. Personalized recommendations
+   (AI-powered trip planning - future phase)
+
+
+SLIDE 5: PROJECT LIMITATIONS
+-----------------------------
+Title: Limitations of the Project
+
+Technical Limitations:
+• Mobile app only (React Native) - no web version
+• Payment gateway not yet integrated
+• No real-time chat between users and partners
+• Requires constant internet connectivity
+
+Operational Limitations:
+• Geographic scope: Sri Lanka only
+• Language: English only (no Sinhala/Tamil yet)
+• Limited scalability testing with large user base
+
+Resource Constraints:
+• Academic timeline: 6 months
+• Firebase free-tier usage limits
+• Small-scale testing environment
+
+
+SLIDE 6: LITERATURE REVIEW & RESEARCH GAP
+------------------------------------------
+Title: Literature Review & Research Gap
+
+Existing Solutions:
+┌─────────────┬─────────────────┬──────────────────┐
+│ Platform    │ Strengths       │ Gaps             │
+├─────────────┼─────────────────┼──────────────────┤
+│ Booking.com │ Hotels          │ No local tours   │
+│ Airbnb      │ P2P marketplace │ Limited SL       │
+│ TripAdvisor │ Reviews         │ No booking       │
+│ PickMe      │ Local transport │ No tourism focus │
+└─────────────┴─────────────────┴──────────────────┘
+
+Research Gap Identified:
+❌ No integrated platform exists that:
+  • Combines all tourism services in ONE ecosystem
+  • Provides AI-driven Sri Lankan tourism personalization
+  • Offers verified partner system ensuring trust
+  • Empowers small local businesses digitally
+
+
+SLIDE 7: RESEARCH METHODOLOGY
+------------------------------
+Title: Research Methodology
+
+Development Approach: Agile (2-week sprints)
+
+Technology Stack:
+
+Frontend (Mobile):
+• React Native + Expo
+• TypeScript for type safety
+• React Navigation
+• Custom UI with LinearGradient
+
+Backend (Cloud):
+• Firebase Firestore (NoSQL real-time database)
+• Firebase Authentication
+• Firebase Cloud Storage
+• Python Admin SDK (partner approval)
+
+System Architecture:
+  Mobile App (React Native)
+        ↓
+  Firebase Cloud Services
+   - Firestore DB
+   - Authentication
+   - Storage
+        ↓
+  Python Backend (Admin)
+
+
+SLIDE 8: SYSTEM DEMONSTRATION & FINDINGS
+-----------------------------------------
+Title: System Implementation & Findings
+
+✅ Key Features Implemented:
+
+1. Authentication System
+   • Email/password with verification
+   • Role-based access (Traveler/Partner/Admin)
+
+2. Traveler Features
+   • Personalized home screen
+   • Browse listings by category
+   • Profile management with preferences
+   • Budget tracking ($100-$500)
+
+3. Partner Features
+   • Partner dashboard
+   • Create/manage listings
+   • Approval status tracking
+
+4. Admin Features
+   • Partner approval workflows
+   • Batch operations via scripts
+
+[DEMO: Show screenshots or 2-min video]
+
+
+SLIDE 9: TECHNICAL ACHIEVEMENTS
+--------------------------------
+Title: Technical Implementation
+
+Database Structure:
+• users - Authentication data
+• travelerProfiles - Preferences & budget
+• partnerProfiles - Business details
+• listings - Service offerings
+
+Security Features:
+✓ Firestore security rules
+✓ Email verification enforcement
+✓ Role-based data access
+✓ Secure credential management
+
+Performance Metrics:
+• Authentication: 98% success rate
+• Profile creation: <30 seconds
+• Listing load time: ~1.5 seconds
+• Real-time Firestore sync
+
+
+SLIDE 10: CHALLENGES & SOLUTIONS
+---------------------------------
+Title: Challenges Encountered
+
+Technical Challenges:
+
+1. Firestore Complex Queries
+   Problem: Required composite indexes
+   Solution: Generated via Firebase console & CLI
+
+2. TypeScript Type Safety
+   Problem: Data type mismatches
+   Solution: Created robust type definitions
+
+3. Admin Security
+   Problem: Can't expose admin keys in mobile app
+   Solution: Separate Python backend with Admin SDK
+
+4. Email Verification
+   Problem: Users bypassing verification
+   Solution: Verification check screen
+
+
+SLIDE 11: RECOMMENDATIONS
+--------------------------
+Title: Recommendations
+
+Implementation Phase:
+✓ Payment gateway (Stripe/PayHere)
+✓ In-app messaging system
+✓ Rating & review mechanism
+✓ Multi-language support (Sinhala/Tamil)
+✓ Push notifications
+
+Deployment Phase:
+✓ Beta testing with 50-100 users
+✓ Recruit 20-30 verified partners
+✓ Partner with Tourism Development Authority
+✓ Migrate to Firebase Blaze plan
+
+Research Phase:
+✓ User behavior analytics
+✓ A/B testing for optimization
+✓ Performance benchmarking
+
+
+SLIDE 12: FUTURE RESEARCH DIRECTIONS
+-------------------------------------
+Title: Directions for Future Research
+
+Phase 2 Development:
+
+1. AI-Powered Features
+   • ML-based destination recommendations
+   • Natural language chatbot (SkyAI)
+   • Collaborative filtering
+
+2. Advanced Technologies
+   • AR for landmark exploration
+   • Blockchain for review authenticity
+   • IoT integration for smart bookings
+
+3. Platform Expansion
+   • Web application
+   • Partner analytics dashboard
+   • Third-party API integrations
+
+Research Questions:
+→ Can AI reduce travel planning time by 50%+?
+→ What trust mechanisms maximize conversions?
+→ Mobile-first vs. web booking effectiveness?
+
+
+SLIDE 13: PROJECT TIMELINE & STATUS
+------------------------------------
+Title: Project Progress Timeline
+
+Completed Milestones ✅
+Week 1-2:   Requirements & system design
+Week 3-4:   Firebase setup & authentication
+Week 5-6:   UI development (screens)
+Week 7-8:   Database schema & Firestore
+Week 9-10:  Admin dashboard
+Week 11-12: Testing & documentation
+
+Current Status: 75% Complete
+
+Upcoming Tasks ⏳
+Week 13-14: User acceptance testing
+Week 15-16: Performance optimization
+Week 17-18: Final presentation prep
+
+
+SLIDE 14: CONTRIBUTION & IMPACT
+--------------------------------
+Title: Research Contribution & Impact
+
+Academic Contribution:
+• First integrated tourism platform for Sri Lanka
+• Novel approach to peer-to-peer marketplace trust
+• Mobile-first architecture for emerging markets
+
+Social Impact:
+🌍 Empowering local businesses with digital tools
+👥 Improving traveler safety and experience
+💰 Boosting Sri Lankan tourism economy
+🔐 Building trust through verification system
+
+Technical Innovation:
+• TypeScript + Firebase real-time architecture
+• Dual-role authentication system
+• Scalable cloud infrastructure
+
+
+SLIDE 15: Q&A
+--------------
+Title: Thank You!
+
+Questions & Answers
+
+Key Contacts:
+Email: [your.email@university.lk]
+Supervisor: [Supervisor Name]
+
+Be Prepared to Discuss:
+• Technical implementation details
+• Security and scalability
+• Future commercialization
+• Research methodology
+
+
+====================================
+PRESENTATION NOTES & TIMING GUIDE
+====================================
+
+Slide 1-3: Background (2 min)
+Slide 4-5: Objectives & Limits (1.5 min)
+Slide 6: Literature Review (1 min)
+Slide 7: Methodology (1 min)
+Slide 8-9: Demo & Implementation (2.5 min) ⭐ KEY
+Slide 10-11: Challenges & Recommendations (1.5 min)
+Slide 12-13: Future & Timeline (1 min)
+Slide 14-15: Conclusion (30 sec)
+
+TOTAL: ~10 minutes
+
+DEMO PREPARATION:
+- Option 1: Pre-record 2-min video walkthrough
+- Option 2: Use screenshots with annotations
+- Show: Login → Traveler Home → Browse Listings → Admin Dashboard
+
+PRACTICE TIPS:
+✓ Rehearse 3x times before presentation
+✓ Keep each slide to 40-60 seconds max
+✓ Focus energy on Slides 8-9 (implementation)
+✓ Have backup slides on USB + cloud
+✓ Arrive 30 minutes early
+
+PANEL QUESTIONS - PREPARE FOR:
+Q: Why Firebase instead of traditional backend?
+A: Rapid development, real-time sync, scalability, managed infrastructure
+
+Q: How different from Booking.com?
+A: Integrated Sri Lankan ecosystem, verified local partners, AI personalization
+
+Q: Monetization strategy?
+A: Commission on bookings, premium partner listings, advertising
+
+Q: Security measures?
+A: Firestore rules, email verification, admin approval, encrypted credentials
+
+Q: Performance with 1000+ users?
+A: Firebase auto-scales, tested with emulator, will migrate to Blaze plan

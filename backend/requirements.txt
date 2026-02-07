@@ -1,0 +1,22 @@
+# FastAPI and server dependencies
+fastapi==0.109.0
+uvicorn[standard]==0.27.0
+python-multipart==0.0.6
+
+# Firebase Admin SDK
+firebase-admin==6.4.0
+
+# AI/ML dependencies
+requests==2.31.0
+chromadb==0.4.22
+langchain==0.1.4
+langchain-community==0.0.16
+
+# Environment variables
+python-dotenv==1.0.0
+
+# CORS support
+fastapi-cors==0.0.6
+
+# Data validation
+pydantic==2.5.3
