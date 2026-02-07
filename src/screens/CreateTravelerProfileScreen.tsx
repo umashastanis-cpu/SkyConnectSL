@@ -10,6 +10,8 @@ import {
   Platform,
   ScrollView,
   SafeAreaView,
+  Image,
+  ActivityIndicator,
 } from 'react-native';
 import { LinearGradient } from 'expo-linear-gradient';
 import { Ionicons } from '@expo/vector-icons';
@@ -17,6 +19,7 @@ import { NativeStackNavigationProp } from '@react-navigation/native-stack';
 import { RootStackParamList } from '../types';
 import { useAuth } from '../contexts/AuthContext';
 import { createTravelerProfile } from '../services/firestoreService';
+import { pickImage, takePhoto, uploadTravelerProfilePhoto } from '../services/storageService';
 
 type CreateTravelerProfileScreenNavigationProp = NativeStackNavigationProp<
   RootStackParamList,
@@ -52,6 +55,8 @@ const CreateTravelerProfileScreen: React.FC<CreateTravelerProfileScreenProps> = 
   const [maxBudget, setMaxBudget] = useState('');
   const [travelType, setTravelType] = useState('Solo');
   const [loading, setLoading] = useState(false);
+  const [profilePhotoUri, setProfilePhotoUri] = useState<string | null>(null);
+  const [uploadingPhoto, setUploadingPhoto] = useState(false);
 
   const togglePreference = (prefId: string) => {
     if (selectedPreferences.includes(prefId)) {
@@ -63,6 +68,42 @@ const CreateTravelerProfileScreen: React.FC<CreateTravelerProfileScreenProps> = 
         Alert.alert('Limit Reached', 'You can select up to 3 preferences');
       }
     }
+  };
+
+  const handlePickPhoto = async () => {
+    try {
+      const uri = await pickImage();
+      if (uri) {
+        setProfilePhotoUri(uri);
+      }
+    } catch (error) {
+      console.error('Error picking photo:', error);
+      Alert.alert('Error', 'Failed to pick photo');
+    }
+  };
+
+  const handleTakePhoto = async () => {
+    try {
+      const uri = await takePhoto();
+      if (uri) {
+        setProfilePhotoUri(uri);
+      }
+    } catch (error) {
+      console.error('Error taking photo:', error);
+      Alert.alert('Error', 'Failed to take photo');
+    }
+  };
+
+  const showPhotoOptions = () => {
+    Alert.alert(
+      'Profile Photo',
+      'Choose an option',
+      [
+        { text: 'Take Photo', onPress: handleTakePhoto },
+        { text: 'Choose from Gallery', onPress: handlePickPhoto },
+        { text: 'Cancel', style: 'cancel' },
+      ]
+    );
   };
 
   const handleSave = async () => {
@@ -91,6 +132,20 @@ const CreateTravelerProfileScreen: React.FC<CreateTravelerProfileScreenProps> = 
 
     setLoading(true);
     try {
+      // Upload profile photo if selected
+      let profilePhotoUrl: string | undefined;
+      if (profilePhotoUri) {
+        setUploadingPhoto(true);
+        try {
+          profilePhotoUrl = await uploadTravelerProfilePhoto(user!.uid, profilePhotoUri);
+        } catch (photoError) {
+          console.error('Error uploading photo:', photoError);
+          Alert.alert('Warning', 'Photo upload failed, but profile will be created without it');
+        } finally {
+          setUploadingPhoto(false);
+        }
+      }
+
       await createTravelerProfile({
         userId: user!.uid,
         name: name.trim(),
@@ -98,6 +153,7 @@ const CreateTravelerProfileScreen: React.FC<CreateTravelerProfileScreenProps> = 
         travelPreferences: selectedPreferences,
         budgetRange: { min, max },
         travelType,
+        profilePhoto: profilePhotoUrl,
       });
       Alert.alert('Success', 'Profile created successfully!');
       navigation.replace('TravelerHome');
@@ -133,9 +189,25 @@ const CreateTravelerProfileScreen: React.FC<CreateTravelerProfileScreenProps> = 
           >
             {/* Avatar + Greeting */}
             <View style={styles.topSection}>
-              <View style={styles.avatarContainer}>
-                <Text style={styles.avatarEmoji}>👤</Text>
-              </View>
+              <TouchableOpacity 
+                style={styles.avatarContainer}
+                onPress={showPhotoOptions}
+                activeOpacity={0.7}
+              >
+                {profilePhotoUri ? (
+                  <Image source={{ uri: profilePhotoUri }} style={styles.avatarImage} />
+                ) : (
+                  <Text style={styles.avatarEmoji}>👤</Text>
+                )}
+                {uploadingPhoto && (
+                  <View style={styles.uploadingOverlay}>
+                    <ActivityIndicator color="#fff" />
+                  </View>
+                )}
+                <View style={styles.cameraIconContainer}>
+                  <Ionicons name="camera" size={20} color="#fff" />
+                </View>
+              </TouchableOpacity>
               <Text style={styles.greeting}>Hi, {name || 'Traveler'}!</Text>
               <Text style={styles.subtitle}>Tell us your travel style</Text>
               <Text style={styles.hint}>This helps our AI plan trips just for you</Text>
@@ -312,9 +384,9 @@ const styles = StyleSheet.create({
     paddingHorizontal: 20,
   },
   avatarContainer: {
-    width: 80,
-    height: 80,
-    borderRadius: 40,
+    width: 100,
+    height: 100,
+    borderRadius: 50,
     backgroundColor: '#E3F2FD',
     justifyContent: 'center',
     alignItems: 'center',
@@ -324,9 +396,38 @@ const styles = StyleSheet.create({
     shadowOpacity: 0.2,
     shadowRadius: 8,
     elevation: 4,
+    overflow: 'hidden',
+    position: 'relative',
+  },
+  avatarImage: {
+    width: '100%',
+    height: '100%',
   },
   avatarEmoji: {
     fontSize: 40,
+  },
+  cameraIconContainer: {
+    position: 'absolute',
+    bottom: 0,
+    right: 0,
+    backgroundColor: '#4A90E2',
+    width: 32,
+    height: 32,
+    borderRadius: 16,
+    alignItems: 'center',
+    justifyContent: 'center',
+    borderWidth: 3,
+    borderColor: '#FFFFFF',
+  },
+  uploadingOverlay: {
+    position: 'absolute',
+    top: 0,
+    left: 0,
+    right: 0,
+    bottom: 0,
+    backgroundColor: 'rgba(0, 0, 0, 0.5)',
+    alignItems: 'center',
+    justifyContent: 'center',
   },
   greeting: {
     fontSize: 28,

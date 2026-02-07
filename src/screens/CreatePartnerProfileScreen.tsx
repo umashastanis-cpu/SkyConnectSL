@@ -12,6 +12,8 @@ import {
   Modal,
   StatusBar,
   SafeAreaView,
+  Image,
+  ActivityIndicator,
 } from 'react-native';
 import { LinearGradient } from 'expo-linear-gradient';
 import { Ionicons } from '@expo/vector-icons';
@@ -19,6 +21,7 @@ import { NativeStackNavigationProp } from '@react-navigation/native-stack';
 import { RootStackParamList } from '../types';
 import { useAuth } from '../contexts/AuthContext';
 import { createPartnerProfile } from '../services/firestoreService';
+import { pickImage, takePhoto, uploadPartnerLogo, uploadPartnerDocument } from '../services/storageService';
 
 type CreatePartnerProfileScreenNavigationProp = NativeStackNavigationProp<
   RootStackParamList,
@@ -40,6 +43,66 @@ const CreatePartnerProfileScreen: React.FC<CreatePartnerProfileScreenProps> = ({
   const [website, setWebsite] = useState('');
   const [loading, setLoading] = useState(false);
   const [showSuccessModal, setShowSuccessModal] = useState(false);
+  
+  // Image uploads
+  const [logoUri, setLogoUri] = useState<string | null>(null);
+  const [documentUris, setDocumentUris] = useState<string[]>([]);
+  const [uploadingLogo, setUploadingLogo] = useState(false);
+  const [uploadingDocument, setUploadingDocument] = useState(false);
+
+  const handlePickLogo = async () => {
+    try {
+      const uri = await pickImage();
+      if (uri) {
+        setLogoUri(uri);
+      }
+    } catch (error) {
+      console.error('Error picking logo:', error);
+      Alert.alert('Error', 'Failed to pick logo image');
+    }
+  };
+
+  const handleTakeLogo = async () => {
+    try {
+      const uri = await takePhoto();
+      if (uri) {
+        setLogoUri(uri);
+      }
+    } catch (error) {
+      console.error('Error taking logo photo:', error);
+      Alert.alert('Error', 'Failed to take photo');
+    }
+  };
+
+  const showLogoOptions = () => {
+    Alert.alert(
+      'Company Logo',
+      'Choose an option',
+      [
+        { text: 'Take Photo', onPress: handleTakeLogo },
+        { text: 'Choose from Gallery', onPress: handlePickLogo },
+        { text: 'Cancel', style: 'cancel' },
+      ]
+    );
+  };
+
+  const handlePickDocument = async () => {
+    try {
+      const uri = await pickImage();
+      if (uri && documentUris.length < 3) {
+        setDocumentUris([...documentUris, uri]);
+      } else if (documentUris.length >= 3) {
+        Alert.alert('Limit Reached', 'You can upload up to 3 documents');
+      }
+    } catch (error) {
+      console.error('Error picking document:', error);
+      Alert.alert('Error', 'Failed to pick document');
+    }
+  };
+
+  const removeDocument = (index: number) => {
+    setDocumentUris(documentUris.filter((_, i) => i !== index));
+  };
 
   const handleSave = async () => {
     if (!companyName.trim()) {
@@ -64,16 +127,50 @@ const CreatePartnerProfileScreen: React.FC<CreatePartnerProfileScreenProps> = ({
 
     setLoading(true);
     try {
+      // Upload logo if selected
+      let logoUrl: string | undefined;
+      if (logoUri) {
+        setUploadingLogo(true);
+        try {
+          logoUrl = await uploadPartnerLogo(user!.uid, logoUri);
+        } catch (logoError) {
+          console.error('Error uploading logo:', logoError);
+          Alert.alert('Warning', 'Logo upload failed, but profile will be created without it');
+        } finally {
+          setUploadingLogo(false);
+        }
+      }
+
+      // Upload documents if selected
+      let documentUrls: string[] = [];
+      if (documentUris.length > 0) {
+        setUploadingDocument(true);
+        try {
+          for (let i = 0; i < documentUris.length; i++) {
+            const docUri = documentUris[i];
+            const docName = `document_${i + 1}`;
+            const docUrl = await uploadPartnerDocument(user!.uid, docUri, docName);
+            documentUrls.push(docUrl);
+          }
+        } catch (docError) {
+          console.error('Error uploading documents:', docError);
+          Alert.alert('Warning', 'Some documents failed to upload');
+        } finally {
+          setUploadingDocument(false);
+        }
+      }
+
       await createPartnerProfile({
         userId: user!.uid,
-        companyName: companyName.trim(),
+        businessName: companyName.trim(),
+        businessCategory: 'Tourism', // Default category
         description: description.trim(),
-        location: location.trim(),
-        contactInfo: {
-          phone: phone.trim(),
-          email: user!.email,
-          website: website.trim() || undefined,
-        },
+        businessAddress: location.trim(),
+        email: user!.email,
+        contactPhone: phone.trim(),
+        websiteUrl: website.trim() || undefined,
+        logo: logoUrl,
+        documents: documentUrls.length > 0 ? documentUrls : undefined,
       });
       setShowSuccessModal(true);
     } catch (error: any) {
@@ -151,6 +248,63 @@ const CreatePartnerProfileScreen: React.FC<CreatePartnerProfileScreenProps> = ({
                 textAlignVertical="top"
               />
               <Text style={styles.charCount}>{description.length} characters</Text>
+            </View>
+
+            {/* Logo Upload */}
+            <View style={styles.inputGroup}>
+              <Text style={styles.label}>Company Logo (Optional)</Text>
+              <TouchableOpacity
+                style={styles.logoUploadButton}
+                onPress={showLogoOptions}
+                disabled={uploadingLogo}
+              >
+                {logoUri ? (
+                  <View style={styles.logoPreviewContainer}>
+                    <Image source={{ uri: logoUri }} style={styles.logoPreview} />
+                    {uploadingLogo && (
+                      <View style={styles.uploadingOverlay}>
+                        <ActivityIndicator color="#fff" />
+                      </View>
+                    )}
+                  </View>
+                ) : (
+                  <View style={styles.logoPlaceholder}>
+                    <Ionicons name="image-outline" size={32} color="#4A90E2" />
+                    <Text style={styles.logoUploadText}>Upload Logo</Text>
+                  </View>
+                )}
+              </TouchableOpacity>
+            </View>
+
+            {/* Documents Upload */}
+            <View style={styles.inputGroup}>
+              <Text style={styles.label}>Verification Documents (Optional, up to 3)</Text>
+              <TouchableOpacity
+                style={styles.documentUploadButton}
+                onPress={handlePickDocument}
+                disabled={uploadingDocument || documentUris.length >= 3}
+              >
+                <Ionicons name="document-attach-outline" size={20} color="#4A90E2" />
+                <Text style={styles.documentUploadText}>
+                  {uploadingDocument ? 'Uploading...' : 'Add Document'}
+                </Text>
+              </TouchableOpacity>
+              
+              {documentUris.length > 0 && (
+                <View style={styles.documentsPreview}>
+                  {documentUris.map((uri, index) => (
+                    <View key={index} style={styles.documentItem}>
+                      <Image source={{ uri }} style={styles.documentThumbnail} />
+                      <TouchableOpacity
+                        style={styles.removeDocButton}
+                        onPress={() => removeDocument(index)}
+                      >
+                        <Ionicons name="close-circle" size={20} color="#FF3B30" />
+                      </TouchableOpacity>
+                    </View>
+                  ))}
+                </View>
+              )}
             </View>
           </View>
 
@@ -402,6 +556,84 @@ const styles = StyleSheet.create({
     color: '#FFF',
     fontSize: 18,
     fontWeight: 'bold',
+  },
+  logoUploadButton: {
+    borderWidth: 2,
+    borderColor: '#E0E0E0',
+    borderRadius: 12,
+    borderStyle: 'dashed',
+    overflow: 'hidden',
+  },
+  logoPreviewContainer: {
+    width: '100%',
+    height: 120,
+    position: 'relative',
+  },
+  logoPreview: {
+    width: '100%',
+    height: '100%',
+    resizeMode: 'contain',
+  },
+  logoPlaceholder: {
+    height: 120,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  logoUploadText: {
+    marginTop: 8,
+    color: '#4A90E2',
+    fontSize: 14,
+    fontWeight: '600',
+  },
+  uploadingOverlay: {
+    position: 'absolute',
+    top: 0,
+    left: 0,
+    right: 0,
+    bottom: 0,
+    backgroundColor: 'rgba(0, 0, 0, 0.5)',
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  documentUploadButton: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    paddingVertical: 12,
+    paddingHorizontal: 16,
+    borderWidth: 1,
+    borderColor: '#4A90E2',
+    borderRadius: 8,
+    gap: 8,
+  },
+  documentUploadText: {
+    color: '#4A90E2',
+    fontSize: 14,
+    fontWeight: '600',
+  },
+  documentsPreview: {
+    flexDirection: 'row',
+    flexWrap: 'wrap',
+    gap: 8,
+    marginTop: 12,
+  },
+  documentItem: {
+    width: 80,
+    height: 80,
+    position: 'relative',
+  },
+  documentThumbnail: {
+    width: '100%',
+    height: '100%',
+    borderRadius: 8,
+    backgroundColor: '#F5F5F5',
+  },
+  removeDocButton: {
+    position: 'absolute',
+    top: -6,
+    right: -6,
+    backgroundColor: '#FFF',
+    borderRadius: 10,
   },
   modalOverlay: {
     flex: 1,
