@@ -65,11 +65,12 @@ export default function ListingDetailScreen({ route, navigation }: any) {
   };
 
   const handleBookNow = () => {
-    Alert.alert(
-      'Coming Soon',
-      'Booking functionality will be available soon!',
-      [{ text: 'OK' }]
-    );
+    if (!listing) return;
+    
+    navigation.navigate('Booking', { 
+      listingId: listing.id || listingId,
+      listing: listing
+    });
   };
 
   const handleContactPartner = () => {

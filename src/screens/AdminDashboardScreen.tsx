@@ -76,7 +76,7 @@ const AdminDashboardScreen: React.FC = () => {
           text: 'Approve',
           onPress: async () => {
             try {
-              await approvePartner(userId);
+              await approvePartner(userId, user!.uid);
               setPendingPartners(pendingPartners.filter((p) => p.userId !== userId));
               Alert.alert('Success', 'Partner approved!');
             } catch (error) {
@@ -164,8 +164,8 @@ const AdminDashboardScreen: React.FC = () => {
     <View key={partner.userId} style={styles.card}>
       <View style={styles.cardHeader}>
         <View style={styles.cardTitleContainer}>
-          <Text style={styles.cardTitle}>{partner.companyName}</Text>
-          <Text style={styles.cardSubtitle}>{partner.location}</Text>
+          <Text style={styles.cardTitle}>{partner.businessName}</Text>
+          <Text style={styles.cardSubtitle}>{partner.businessAddress}</Text>
         </View>
         <Ionicons name="business" size={40} color="#1E88E5" />
       </View>
@@ -177,25 +177,25 @@ const AdminDashboardScreen: React.FC = () => {
       <View style={styles.contactInfo}>
         <View style={styles.infoRow}>
           <Ionicons name="call" size={16} color="#666" />
-          <Text style={styles.infoText}>{partner.contactInfo.phone}</Text>
+          <Text style={styles.infoText}>{partner.contactPhone}</Text>
         </View>
         <View style={styles.infoRow}>
           <Ionicons name="mail" size={16} color="#666" />
-          <Text style={styles.infoText}>{partner.contactInfo.email}</Text>
+          <Text style={styles.infoText}>{partner.email}</Text>
         </View>
       </View>
 
       <View style={styles.cardActions}>
         <TouchableOpacity
           style={[styles.actionButton, styles.rejectButton]}
-          onPress={() => handleRejectPartner(partner.userId, partner.companyName)}
+          onPress={() => handleRejectPartner(partner.userId, partner.businessName)}
         >
           <Ionicons name="close-circle" size={20} color="#FFF" />
           <Text style={styles.actionButtonText}>Reject</Text>
         </TouchableOpacity>
         <TouchableOpacity
           style={[styles.actionButton, styles.approveButton]}
-          onPress={() => handleApprovePartner(partner.userId, partner.companyName)}
+          onPress={() => handleApprovePartner(partner.userId, partner.businessName)}
         >
           <Ionicons name="checkmark-circle" size={20} color="#FFF" />
           <Text style={styles.actionButtonText}>Approve</Text>

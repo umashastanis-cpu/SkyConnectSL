@@ -26,6 +26,9 @@ import PartnerListingsScreen from '../screens/PartnerListingsScreen';
 import AdminDashboardScreen from '../screens/AdminDashboardScreen';
 import BrowseListingsScreen from '../screens/BrowseListingsScreen';
 import ListingDetailScreen from '../screens/ListingDetailScreen';
+import BookingScreen from '../screens/BookingScreen';
+import MyBookingsScreen from '../screens/MyBookingsScreen';
+import AIChatScreen from '../screens/AIChatScreen';
 
 const Stack = createNativeStackNavigator<RootStackParamList>();
 
@@ -106,7 +109,12 @@ const AppNavigator: React.FC = () => {
 
   return (
     <NavigationContainer>
-      <Stack.Navigator screenOptions={{ headerShown: false }}>
+      <Stack.Navigator 
+        screenOptions={{ 
+          headerShown: false,
+          gestureEnabled: true,
+        }}
+      >
         {/* Onboarding flow */}
         {!onboardingComplete ? (
           <Stack.Screen name="Onboarding" component={OnboardingScreen} />
@@ -114,7 +122,11 @@ const AppNavigator: React.FC = () => {
           // Auth flow
           <>
             <Stack.Screen name="Signup" component={SignupScreen} />
-            <Stack.Screen name="Login" component={LoginScreen} />
+            <Stack.Screen 
+              name="Login" 
+              component={LoginScreen}
+              options={{ gestureEnabled: true }}
+            />
             <Stack.Screen name="EmailVerification" component={EmailVerificationScreen} />
           </>
         ) : !user.emailVerified ? (
@@ -141,9 +153,36 @@ const AppNavigator: React.FC = () => {
             {user.role === 'traveler' ? (
               <>
                 <Stack.Screen name="TravelerHome" component={TravelerHomeScreen} />
-                <Stack.Screen name="EditTravelerProfile" component={EditTravelerProfileScreen} />
-                <Stack.Screen name="BrowseListings" component={BrowseListingsScreen} />
-                <Stack.Screen name="ListingDetail" component={ListingDetailScreen} />
+                <Stack.Screen 
+                  name="EditTravelerProfile" 
+                  component={EditTravelerProfileScreen}
+                  options={{ gestureEnabled: true }}
+                />
+                <Stack.Screen 
+                  name="BrowseListings" 
+                  component={BrowseListingsScreen}
+                  options={{ gestureEnabled: true }}
+                />
+                <Stack.Screen 
+                  name="ListingDetail" 
+                  component={ListingDetailScreen}
+                  options={{ gestureEnabled: true }}
+                />
+                <Stack.Screen 
+                  name="Booking"
+                  component={BookingScreen}
+                  options={{ gestureEnabled: true }}
+                />
+                <Stack.Screen 
+                  name="MyBookings"
+                  component={MyBookingsScreen}
+                  options={{ gestureEnabled: true }}
+                />
+                <Stack.Screen 
+                  name="AIChat"
+                  component={AIChatScreen}
+                  options={{ gestureEnabled: true }}
+                />
               </>
             ) : user.role === 'admin' ? (
               <>
@@ -152,9 +191,21 @@ const AppNavigator: React.FC = () => {
             ) : (
               <>
                 <Stack.Screen name="PartnerHome" component={PartnerHomeScreen} />
-                <Stack.Screen name="EditPartnerProfile" component={EditPartnerProfileScreen} />
-                <Stack.Screen name="CreateListing" component={CreateListingScreen} />
-                <Stack.Screen name="PartnerListings" component={PartnerListingsScreen} />
+                <Stack.Screen 
+                  name="EditPartnerProfile" 
+                  component={EditPartnerProfileScreen}
+                  options={{ gestureEnabled: true }}
+                />
+                <Stack.Screen 
+                  name="CreateListing" 
+                  component={CreateListingScreen}
+                  options={{ gestureEnabled: true }}
+                />
+                <Stack.Screen 
+                  name="PartnerListings" 
+                  component={PartnerListingsScreen}
+                  options={{ gestureEnabled: true }}
+                />
               </>
             )}
           </>

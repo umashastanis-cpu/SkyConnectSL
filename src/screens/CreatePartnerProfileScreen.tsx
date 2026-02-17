@@ -35,7 +35,7 @@ interface CreatePartnerProfileScreenProps {
 const CreatePartnerProfileScreen: React.FC<CreatePartnerProfileScreenProps> = ({
   navigation,
 }) => {
-  const { user } = useAuth();
+  const { user, signOut, reloadUser } = useAuth();
   const [companyName, setCompanyName] = useState('');
   const [description, setDescription] = useState('');
   const [location, setLocation] = useState('');
@@ -102,6 +102,27 @@ const CreatePartnerProfileScreen: React.FC<CreatePartnerProfileScreenProps> = ({
 
   const removeDocument = (index: number) => {
     setDocumentUris(documentUris.filter((_, i) => i !== index));
+  };
+
+  const handleBack = () => {
+    Alert.alert(
+      'Cancel Profile Creation',
+      'Are you sure you want to go back? You will be signed out.',
+      [
+        { text: 'Stay', style: 'cancel' },
+        { 
+          text: 'Sign Out', 
+          style: 'destructive',
+          onPress: async () => {
+            try {
+              await signOut();
+            } catch (error) {
+              console.error('Error signing out:', error);
+            }
+          }
+        },
+      ]
+    );
   };
 
   const handleSave = async () => {
@@ -172,6 +193,9 @@ const CreatePartnerProfileScreen: React.FC<CreatePartnerProfileScreenProps> = ({
         logo: logoUrl,
         documents: documentUrls.length > 0 ? documentUrls : undefined,
       });
+      
+      // Reload user to trigger profile check
+      await reloadUser();
       setShowSuccessModal(true);
     } catch (error: any) {
       Alert.alert('Error', error.message);
@@ -182,7 +206,7 @@ const CreatePartnerProfileScreen: React.FC<CreatePartnerProfileScreenProps> = ({
 
   const handleModalClose = () => {
     setShowSuccessModal(false);
-    navigation.replace('PartnerHome');
+    // AppNavigator will automatically show PartnerHome after reloadUser
   };
 
   const isFormValid = () => {
@@ -200,7 +224,7 @@ const CreatePartnerProfileScreen: React.FC<CreatePartnerProfileScreenProps> = ({
       
       {/* Header */}
       <View style={styles.header}>
-        <TouchableOpacity onPress={() => navigation.goBack()} style={styles.backButton}>
+        <TouchableOpacity onPress={handleBack} style={styles.backButton}>
           <Ionicons name="arrow-back" size={24} color="#333" />
         </TouchableOpacity>
         <View style={styles.headerTextContainer}>

@@ -55,7 +55,7 @@ const TravelerHomeScreen: React.FC = () => {
 
   const quickActions = [
     { id: 1, icon: 'compass-outline', label: 'Explore', color: '#4A90E2', emoji: '🧭', action: () => navigation.navigate('BrowseListings', {}) },
-    { id: 2, icon: 'airplane-outline', label: 'Tours', color: '#50C9C3', emoji: '✈️', action: () => navigation.navigate('BrowseListings', {}) },
+    { id: 2, icon: 'calendar-outline', label: 'My Bookings', color: '#FF6B6B', emoji: '📅', action: () => navigation.navigate('MyBookings') },
     { id: 3, icon: 'business-outline', label: 'Hotels', color: '#9B59B6', emoji: '🏨', action: () => navigation.navigate('BrowseListings', {}) },
     { id: 4, icon: 'briefcase-outline', label: 'Transport', color: '#E74C3C', emoji: '🚗', action: () => navigation.navigate('BrowseListings', {}) },
   ];
@@ -126,7 +126,10 @@ const TravelerHomeScreen: React.FC = () => {
         </View>
 
         {/* AI Assistant Card (Purple Gradient) */}
-        <TouchableOpacity style={styles.aiCard}>
+        <TouchableOpacity 
+          style={styles.aiCard}
+          onPress={() => navigation.navigate('AIChat')}
+        >
           <LinearGradient
             colors={['#667eea', '#764ba2']}
             start={{ x: 0, y: 0 }}

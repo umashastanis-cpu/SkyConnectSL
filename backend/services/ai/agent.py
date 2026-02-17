@@ -10,7 +10,7 @@ import os
 
 # Import prompts and tools
 from .prompts import TRAVEL_CONCIERGE_SYSTEM_PROMPT
-from .tools import get_travel_concierge_tools
+from .base_tools import get_travel_concierge_tools
 
 
 class TravelConciergeAgent:

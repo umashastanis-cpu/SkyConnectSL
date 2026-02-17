@@ -52,11 +52,11 @@ const EditPartnerProfileScreen: React.FC<EditPartnerProfileScreenProps> = ({
     try {
       const profile = await getPartnerProfile(user.uid);
       if (profile) {
-        setCompanyName(profile.companyName);
+        setCompanyName(profile.businessName);
         setDescription(profile.description);
-        setLocation(profile.location);
-        setPhone(profile.contactInfo.phone);
-        setWebsite(profile.contactInfo.website || '');
+        setLocation(profile.businessAddress);
+        setPhone(profile.contactPhone);
+        setWebsite(profile.websiteUrl || '');
       }
     } catch (error: any) {
       Alert.alert('Error', 'Failed to load profile');
@@ -90,14 +90,12 @@ const EditPartnerProfileScreen: React.FC<EditPartnerProfileScreenProps> = ({
     setLoading(true);
     try {
       await updatePartnerProfile(user!.uid, {
-        companyName: companyName.trim(),
+        businessName: companyName.trim(),
         description: description.trim(),
-        location: location.trim(),
-        contactInfo: {
-          phone: phone.trim(),
-          email: user!.email,
-          website: website.trim() || undefined,
-        },
+        businessAddress: location.trim(),
+        contactPhone: phone.trim(),
+        email: user!.email,
+        websiteUrl: website.trim() || undefined,
       });
       Alert.alert('Success', 'Profile updated successfully!', [
         { text: 'OK', onPress: () => navigation.goBack() }

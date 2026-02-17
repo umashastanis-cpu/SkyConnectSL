@@ -11,6 +11,15 @@ requests==2.31.0
 chromadb==0.4.22
 langchain==0.1.4
 langchain-community==0.0.16
+langchain-groq==0.0.1
+sentence-transformers==2.2.2
+numpy==1.24.3
+
+# Google Gemini AI
+google-generativeai==0.3.2
+
+# Testing and CLI
+colorama==0.4.6
 
 # Environment variables
 python-dotenv==1.0.0
@@ -20,3 +29,6 @@ fastapi-cors==0.0.6
 
 # Data validation
 pydantic==2.5.3
+
+# Caching utilities
+cachetools==5.3.2

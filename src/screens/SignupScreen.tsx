@@ -55,7 +55,27 @@ const SignupScreen: React.FC<SignupScreenProps> = ({ navigation }) => {
         [{ text: 'OK', onPress: () => navigation.replace('EmailVerification') }]
       );
     } catch (error: any) {
-      Alert.alert('Signup Failed', error.message);
+      console.error('Signup error:', error);
+      
+      let errorMessage = error.message || 'Signup failed. Please try again.';
+      
+      if (error.code === 'auth/network-request-failed') {
+        errorMessage = 
+          '🌐 Network Connection Failed\n\n' +
+          'Cannot reach Firebase servers. Please check:\n\n' +
+          '• Your internet connection\n' +
+          '• WiFi or mobile data is enabled\n' +
+          '• Firewall or VPN settings\n\n' +
+          'Try closing and reopening the app.';
+      } else if (error.code === 'auth/email-already-in-use') {
+        errorMessage = 'This email is already registered. Please login instead.';
+      } else if (error.code === 'auth/invalid-email') {
+        errorMessage = 'Invalid email address format.';
+      } else if (error.code === 'auth/weak-password') {
+        errorMessage = 'Password is too weak. Use at least 6 characters.';
+      }
+      
+      Alert.alert('Signup Failed', errorMessage, [{ text: 'OK' }]);
     } finally {
       setLoading(false);
     }

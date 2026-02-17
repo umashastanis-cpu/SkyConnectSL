@@ -65,8 +65,14 @@ export const createTravelerProfile = async (
   profile: Omit<TravelerProfile, 'createdAt' | 'updatedAt'>
 ): Promise<void> => {
   const travelerRef = doc(db, 'travelers', profile.userId);
+  
+  // Remove undefined values to prevent Firestore errors
+  const cleanProfile = Object.fromEntries(
+    Object.entries(profile).filter(([_, v]) => v !== undefined)
+  );
+  
   await setDoc(travelerRef, {
-    ...profile,
+    ...cleanProfile,
     createdAt: serverTimestamp(),
     updatedAt: serverTimestamp(),
   });
@@ -95,8 +101,14 @@ export const updateTravelerProfile = async (
   updates: Partial<Omit<TravelerProfile, 'userId' | 'createdAt' | 'updatedAt'>>
 ): Promise<void> => {
   const travelerRef = doc(db, 'travelers', userId);
+  
+  // Remove undefined values to prevent Firestore errors
+  const cleanUpdates = Object.fromEntries(
+    Object.entries(updates).filter(([_, v]) => v !== undefined)
+  );
+  
   await updateDoc(travelerRef, {
-    ...updates,
+    ...cleanUpdates,
     updatedAt: serverTimestamp(),
   });
 };
@@ -107,8 +119,14 @@ export const createPartnerProfile = async (
   profile: Omit<PartnerProfile, 'createdAt' | 'updatedAt' | 'status'>
 ): Promise<void> => {
   const partnerRef = doc(db, 'partners', profile.userId);
+  
+  // Remove undefined values to prevent Firestore errors
+  const cleanProfile = Object.fromEntries(
+    Object.entries(profile).filter(([_, v]) => v !== undefined)
+  );
+  
   const profileData = {
-    ...profile,
+    ...cleanProfile,
     status: 'pending' as const, // Partners need admin approval
     createdAt: serverTimestamp(),
     updatedAt: serverTimestamp(),
@@ -142,8 +160,14 @@ export const updatePartnerProfile = async (
   updates: Partial<Omit<PartnerProfile, 'userId' | 'createdAt' | 'updatedAt' | 'status'>>
 ): Promise<void> => {
   const partnerRef = doc(db, 'partners', userId);
+  
+  // Remove undefined values to prevent Firestore errors
+  const cleanUpdates = Object.fromEntries(
+    Object.entries(updates).filter(([_, v]) => v !== undefined)
+  );
+  
   await updateDoc(partnerRef, {
-    ...updates,
+    ...cleanUpdates,
     updatedAt: serverTimestamp(),
   });
 };
@@ -214,8 +238,14 @@ export const createListing = async (
   listing: Omit<Listing, 'id' | 'createdAt' | 'updatedAt' | 'status'>
 ): Promise<string> => {
   const listingsRef = collection(db, 'listings');
+  
+  // Remove undefined values to prevent Firestore errors
+  const cleanListing = Object.fromEntries(
+    Object.entries(listing).filter(([_, v]) => v !== undefined)
+  );
+  
   const listingData = {
-    ...listing,
+    ...cleanListing,
     status: 'pending' as ListingStatus, // Default status for new listings
     availability: {
       startDate: Timestamp.fromDate(listing.availability.startDate),
@@ -313,8 +343,14 @@ export const updateListing = async (
   updates: Partial<Omit<Listing, 'id' | 'partnerId' | 'createdAt' | 'updatedAt'>>
 ): Promise<void> => {
   const listingRef = doc(db, 'listings', listingId);
+  
+  // Remove undefined values to prevent Firestore errors
+  const cleanUpdates = Object.fromEntries(
+    Object.entries(updates).filter(([_, v]) => v !== undefined)
+  );
+  
   const updateData: any = {
-    ...updates,
+    ...cleanUpdates,
     updatedAt: serverTimestamp(),
   };
 
@@ -544,8 +580,14 @@ export const createBooking = async (
 ): Promise<string> => {
   try {
     const bookingsRef = collection(db, 'bookings');
+    
+    // Remove undefined values to prevent Firestore errors
+    const cleanBookingData = Object.fromEntries(
+      Object.entries(bookingData).filter(([_, v]) => v !== undefined)
+    );
+    
     const docRef = await addDoc(bookingsRef, {
-      ...bookingData,
+      ...cleanBookingData,
       bookingDate: Timestamp.fromDate(bookingData.bookingDate),
       startDate: Timestamp.fromDate(bookingData.startDate),
       endDate: Timestamp.fromDate(bookingData.endDate),

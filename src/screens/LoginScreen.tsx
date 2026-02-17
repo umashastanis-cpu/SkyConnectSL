@@ -43,7 +43,32 @@ const LoginScreen: React.FC<LoginScreenProps> = ({ navigation }) => {
       await signIn(email, password);
       // Navigation handled by App.tsx based on auth state
     } catch (error: any) {
-      Alert.alert('Login Failed', error.message);
+      console.error('Login error:', error);
+      
+      // Provide user-friendly error messages
+      let errorMessage = error.message || 'Login failed. Please try again.';
+      
+      if (error.code === 'auth/network-request-failed') {
+        errorMessage = 
+          '🌐 Network Connection Failed\n\n' +
+          'Cannot reach Firebase servers. Please check:\n\n' +
+          '• Your internet connection\n' +
+          '• WiFi or mobile data is enabled\n' +
+          '• Firewall or VPN settings\n\n' +
+          'Try closing and reopening the app.';
+      } else if (error.code === 'auth/invalid-email') {
+        errorMessage = 'Invalid email address format.';
+      } else if (error.code === 'auth/user-not-found') {
+        errorMessage = 'No account found with this email.';
+      } else if (error.code === 'auth/wrong-password') {
+        errorMessage = 'Incorrect password.';
+      } else if (error.code === 'auth/too-many-requests') {
+        errorMessage = 'Too many failed attempts. Please try again later.';
+      }
+      
+      Alert.alert('Login Failed', errorMessage, [
+        { text: 'OK' }
+      ]);
     } finally {
       setLoading(false);
     }

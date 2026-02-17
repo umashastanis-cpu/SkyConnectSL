@@ -48,7 +48,7 @@ const TRAVEL_TYPES = [
 const CreateTravelerProfileScreen: React.FC<CreateTravelerProfileScreenProps> = ({
   navigation,
 }) => {
-  const { user } = useAuth();
+  const { user, signOut, reloadUser } = useAuth();
   const [name, setName] = useState('');
   const [selectedPreferences, setSelectedPreferences] = useState<string[]>([]);
   const [minBudget, setMinBudget] = useState('');
@@ -155,13 +155,36 @@ const CreateTravelerProfileScreen: React.FC<CreateTravelerProfileScreenProps> = 
         travelType,
         profilePhoto: profilePhotoUrl,
       });
+      
+      // Reload user to trigger profile check and navigate to home
+      await reloadUser();
       Alert.alert('Success', 'Profile created successfully!');
-      navigation.replace('TravelerHome');
     } catch (error: any) {
       Alert.alert('Error', error.message);
     } finally {
       setLoading(false);
     }
+  };
+
+  const handleBack = () => {
+    Alert.alert(
+      'Cancel Profile Creation',
+      'Are you sure you want to go back? You will be signed out.',
+      [
+        { text: 'Stay', style: 'cancel' },
+        { 
+          text: 'Sign Out', 
+          style: 'destructive',
+          onPress: async () => {
+            try {
+              await signOut();
+            } catch (error) {
+              console.error('Error signing out:', error);
+            }
+          }
+        },
+      ]
+    );
   };
 
   return (
@@ -172,7 +195,7 @@ const CreateTravelerProfileScreen: React.FC<CreateTravelerProfileScreenProps> = 
       >
         {/* Header */}
         <View style={styles.header}>
-          <TouchableOpacity onPress={() => navigation.goBack()}>
+          <TouchableOpacity onPress={handleBack}>
             <Ionicons name="arrow-back" size={24} color="#333" />
           </TouchableOpacity>
           <Text style={styles.headerTitle}>Create Traveler Profile</Text>

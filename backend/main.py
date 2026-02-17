@@ -30,13 +30,33 @@ from pydantic import BaseModel
 from dotenv import load_dotenv
 from typing import Optional, List, Dict, Any
 import os
+import logging
+
+# Configure logging
+logging.basicConfig(level=logging.INFO)
+logger = logging.getLogger(__name__)
 
 # Load environment variables
 load_dotenv()
 
 # Import configurations
-from config.firebase_admin import initialize_firebase
+from config.firebase_admin import initialize_firebase, get_firestore_client
 from services.firestore_service import firestore_service
+
+# Import AI services
+from services.ai.llm_provider import get_llm_provider
+from services.ai.travel_assistant_service import get_travel_assistant
+from services.ai.partner_analytics_service import get_analytics_service
+from services.ai.admin_moderation_service import get_moderation_service
+
+# Import data layer
+from data import FirestoreRepository, CachedRepository
+
+# Import hybrid AI system
+from services.ai.hybrid.api_endpoint import router as hybrid_ai_router
+
+# Import authentication middleware
+from services.auth_middleware import get_current_user, require_role
 
 # Initialize FastAPI app
 app = FastAPI(
@@ -66,14 +86,32 @@ app.add_middleware(
     allow_headers=["*"],
 )
 
+# Include routers
+app.include_router(hybrid_ai_router, tags=["Hybrid AI System"])
+
 # Initialize Firebase on startup
 @app.on_event("startup")
 async def startup_event():
     """Initialize services on startup"""
     try:
+        # Initialize Firebase
         initialize_firebase()
+        
+        # Initialize real-time data repository
+        db = get_firestore_client()
+        base_repo = FirestoreRepository(firestore_db=db)
+        cached_repo = CachedRepository(base_repository=base_repo)
+        
+        # Initialize travel assistant with repository
+        app.state.data_repository = cached_repo
+        get_travel_assistant(data_repository=cached_repo)
+        
         print("\n" + "="*60)
         print("🚀 SkyConnect AI Backend [DEMO] - Server Started")
+        print("="*60)
+        print("✅ Firebase initialized")
+        print("✅ Real-time data repository initialized (with caching)")
+        print("✅ AI Travel Assistant ready")
         print("="*60)
         print("⚠️  WARNING: This is a DEMO version - NOT production ready!")
         print("   Missing: Auth, Rate Limiting, Validation, Testing")
@@ -395,6 +433,167 @@ async def train_knowledge_base():
         }
     except Exception as e:
         raise HTTPException(status_code=500, detail=f"Training error: {str(e)}")
+
+# ============================================================
+# NEW: Production-Ready Hybrid AI Endpoints
+# ============================================================
+
+class TravelAssistantRequest(BaseModel):
+    """Travel assistant chat request"""
+    user_id: str
+    query: str
+    context: Optional[Dict[str, Any]] = None
+
+class PartnerAnalyticsRequest(BaseModel):
+    """Partner analytics request"""
+    partner_id: str
+    period_days: int = 30
+    include_llm_summary: bool = True
+
+class ModerationRequest(BaseModel):
+    """Moderation request"""
+    subject_id: str  # partner_id or listing_id
+    subject_type: str  # "partner" or "listing"
+
+@app.post("/api/ai/travel-assistant")
+async def travel_assistant_chat(request: TravelAssistantRequest):
+    """
+    Hybrid AI travel assistant
+    
+    Architecture:
+    1. Deterministic matching (rule-based scoring)
+    2. LLM response formatting (Groq → Gemini → fallback)
+    
+    ⚠️  Demo version - no authentication
+    """
+    try:
+        assistant = get_travel_assistant()
+        response = await assistant.generate_response(
+            user_id=request.user_id,
+            query=request.query,
+            context=request.context
+        )
+        
+        return {
+            "status": "success",
+            **response
+        }
+    except Exception as e:
+        logger.error(f"Travel assistant error: {e}")
+        raise HTTPException(status_code=500, detail=str(e))
+
+@app.get("/api/ai/match-listings/{user_id}")
+async def match_listings_for_user(user_id: str, limit: int = 3):
+    """
+    Get matched listings for a user (pure deterministic)
+    
+    Uses rule-based scoring - NO LLM required
+    """
+    try:
+        assistant = get_travel_assistant()
+        matches = await assistant.match_listings(user_id=user_id, limit=limit)
+        
+        return {
+            "status": "success",
+            "user_id": user_id,
+            "count": len(matches),
+            "matches": matches
+        }
+    except Exception as e:
+        logger.error(f"Matching error: {e}")
+        raise HTTPException(status_code=500, detail=str(e))
+
+@app.post("/api/ai/partner-analytics")
+async def get_partner_analytics_report(request: PartnerAnalyticsRequest):
+    """
+    Partner analytics report
+    
+    Architecture:
+    1. Deterministic aggregation (100% accurate)
+    2. Optional LLM summary (conversational formatting)
+    
+    ⚠️  Demo version - no authentication
+    """
+    try:
+        analytics_service = get_analytics_service()
+        report = await analytics_service.get_partner_analytics(
+            partner_id=request.partner_id,
+            period_days=request.period_days,
+            include_llm_summary=request.include_llm_summary
+        )
+        
+        return {
+            "status": "success",
+            **report
+        }
+    except Exception as e:
+        logger.error(f"Analytics error: {e}")
+        raise HTTPException(status_code=500, detail=str(e))
+
+@app.post("/api/ai/moderate")
+async def moderate_content(request: ModerationRequest):
+    """
+    Content moderation
+    
+    Pure rule-based logic - NO LLM
+    
+    Features:
+    - Duplicate detection
+    - Profile completeness scoring
+    - Auto-approve/reject decisions
+    
+    ⚠️  CRITICAL: Admin endpoint is PUBLIC!
+    """
+    try:
+        moderation_service = get_moderation_service()
+        
+        if request.subject_type == "partner":
+            result = await moderation_service.moderate_partner_application(
+                partner_id=request.subject_id
+            )
+        elif request.subject_type == "listing":
+            result = await moderation_service.moderate_listing(
+                listing_id=request.subject_id
+            )
+        else:
+            raise HTTPException(
+                status_code=400,
+                detail="subject_type must be 'partner' or 'listing'"
+            )
+        
+        return {
+            "status": "success",
+            **result
+        }
+    except HTTPException:
+        raise
+    except Exception as e:
+        logger.error(f"Moderation error: {e}")
+        raise HTTPException(status_code=500, detail=str(e))
+
+@app.get("/api/ai/llm-status")
+async def get_llm_status():
+    """
+    Get LLM provider status
+    
+    Shows which providers are available and ready
+    """
+    try:
+        llm_provider = get_llm_provider()
+        status = llm_provider.get_status()
+        
+        return {
+            "status": "success",
+            "llm_status": status,
+            "architecture": {
+                "primary": "Groq (LLaMA 3.3 70B)",
+                "fallback": "Google Gemini 1.5 Flash",
+                "final_fallback": "Deterministic responses"
+            }
+        }
+    except Exception as e:
+        logger.error(f"LLM status error: {e}")
+        raise HTTPException(status_code=500, detail=str(e))
 
 # ============================================================
 # Run Server

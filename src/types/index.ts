@@ -112,6 +112,9 @@ export type RootStackParamList = {
   BrowseListings: { category?: ListingCategory };
   ListingDetail: { listingId: string };
   PartnerListings: undefined;
+  Booking: { listingId: string; listing: Listing };
+  MyBookings: undefined;
+  AIChat: undefined;
 };
 
 // Booking interface
